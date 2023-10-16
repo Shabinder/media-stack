@@ -1,22 +1,60 @@
 version: '2'
 name: nginx
 services:
-  nginx:
-    image: nginx:1.25.1-alpine
-    container_name: nginx
+  # nginx:
+  #   image: nginx:1.25.1-alpine
+  #   container_name: nginx
+  #   networks:
+  #     - mynetwork
+  #   volumes:
+  #     - nginx-config:/etc/nginx
+  #     - letsencrypt:/etc/letsencrypt
+  #   ports:
+  #     - 80:80
+  #     - 443:443
+  #   restart: unless-stopped
+
+  npm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: npm
+    restart: unless-stopped
     networks:
       - mynetwork
-    volumes:
-      - nginx-config:/etc/nginx
-      - letsencrypt:/etc/letsencrypt
+    environment:
+      PUID: 1000
+      PGID: 1000
+      DB_MYSQL_HOST: "npm-db"
+      DB_MYSQL_PORT: 3306
+      DB_MYSQL_USER: "npm"
+      DB_MYSQL_PASSWORD: "npm"
+      DB_MYSQL_NAME: "npm"
     ports:
       - 80:80
+      - 81:81
       - 443:443
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    depends_on:
+      - npm-db
+
+  npm-db:
+    image: 'jc21/mariadb-aria:latest'
     restart: unless-stopped
+    environment:
+      PUID: 1000
+      PGID: 1000
+      MYSQL_ROOT_PASSWORD: 'npm'
+      MYSQL_DATABASE: 'npm'
+      MYSQL_USER: 'npm'
+      MYSQL_PASSWORD: 'npm'
+    volumes:
+      - ./mysql:/var/lib/mysql
 
 volumes:
-  nginx-config:
+  # nginx-config:
   letsencrypt:
+  npm-config:
 
 networks:
   mynetwork:
