@@ -41,6 +41,8 @@ services:
   npm-db:
     image: 'jc21/mariadb-aria:latest'
     restart: unless-stopped
+    networks:
+      - mynetwork
     environment:
       PUID: 1000
       PGID: 1000
@@ -50,11 +52,54 @@ services:
       MYSQL_PASSWORD: 'npm'
     volumes:
       - ./mysql:/var/lib/mysql
-
+  
+  tunnel:
+    container_name: cloudflared-tunnel
+    image: 'cloudflare/cloudflared:latest'
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=eyJhIjoiOWM1ZmExMTRmODZjZWVhNTU3NGMwODJiZTVlZTM4YWYiLCJ0IjoiYzgwZDU4MDYtMzY2Yi00YjQ0LWFhZTktZTA3ZGUzMDRjMDE5IiwicyI6Ik16Z3pNVEUyWXpNdE5tUm1ZeTAwTjJFekxUZzFNakF0WXpRMFpESXpNbVpqT0dKaSJ9
+    networks:
+      - mynetwork
+  
+  adguardhome:
+        container_name: adguardhome
+        image: adguard/adguardhome
+        restart: unless-stopped
+        environment:
+          - PUID=1000
+          - PGID=1000
+        networks:
+          - mynetwork
+        volumes:
+            - adguard_data:/opt/adguardhome/work
+            - adguard_config:/opt/adguardhome/conf
+        ports:
+            # DNS
+            - '53:53/tcp'
+            - '53:53/udp'
+            # AdGuard Home Admin Panel as well as DNS-over-HTTPS
+            - '5353:80/tcp'
+            - '5354:443/tcp'
+            - '5354:443/udp'
+            - '3000:3000/tcp'
+            # DNS-over-TLS
+            - '853:853/tcp'
+            # DNS-over-QUIC
+            - '784:784/udp'
+            - '853:853/udp'
+            - '8853:8853/udp'
+            # DNSCrypt
+            - '5443:5443/tcp'
+            - '5443:5443/udp'
+        
 volumes:
   # nginx-config:
   letsencrypt:
-  npm-config:
+  adguard_data:
+  adguard_config:
+  # npm-config:
 
 networks:
   mynetwork:
